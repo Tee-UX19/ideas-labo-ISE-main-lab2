@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import json
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, root_mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -8,7 +9,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # --- Config ---
-DATA_FOLDER = "datasets/x264"
+DATA_FOLDER = "datasets/z3"
 REPEATS = 30
 
 all_results = []
@@ -48,3 +49,7 @@ print("\n--- Overall Average ---")
 print(f"MAPE: {np.mean([r['MAPE'] for r in all_results]):.4f}")
 print(f"MAE:  {np.mean([r['MAE']  for r in all_results]):.4f}")
 print(f"RMSE: {np.mean([r['RMSE'] for r in all_results]):.4f}")
+
+# Save results to JSON file
+with open("baseline_results.json", "w") as f:
+    json.dump({r["workload"]: [r["MAPE"], r["MAE"], r["RMSE"]] for r in all_results}, f)

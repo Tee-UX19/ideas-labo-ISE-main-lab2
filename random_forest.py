@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, root_mean_squared_error
 from sklearn.model_selection import train_test_split
 import os
@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # --- Config ---
-DATA_FOLDER = "datasets/x264"
+DATA_FOLDER = "datasets/z3"
 REPEATS = 30
 
 all_results = []
@@ -27,7 +27,7 @@ for filename in os.listdir(DATA_FOLDER):
     for _ in range(REPEATS):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
         
-        model = LinearRegression()
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
