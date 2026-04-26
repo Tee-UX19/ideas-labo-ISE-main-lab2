@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # --- Config ---
-DATA_FOLDER = "datasets/x264"
+DATA_FOLDER = "datasets/z3"
 REPEATS = 30
 
 all_results = []

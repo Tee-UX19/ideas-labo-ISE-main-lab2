@@ -50,6 +50,3 @@ print(f"MAPE: {np.mean([r['MAPE'] for r in all_results]):.4f}")
 print(f"MAE:  {np.mean([r['MAE']  for r in all_results]):.4f}")
 print(f"RMSE: {np.mean([r['RMSE'] for r in all_results]):.4f}")
 
-# Save results to JSON file
-with open("baseline_results.json", "w") as f:
-    json.dump({r["workload"]: [r["MAPE"], r["MAE"], r["RMSE"]] for r in all_results}, f)
