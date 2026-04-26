@@ -10,74 +10,87 @@ from scipy.stats import wilcoxon
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-DATA_FOLDER = "datasets/z3"
+SYSTEMS = ["z3", "x264", "jump3r"]
 REPEATS = 30
 
 os.makedirs("results", exist_ok=True)
 rows = []
 
-for filename in sorted(os.listdir(DATA_FOLDER)):
-    if not filename.endswith(".csv"):
-        continue
+for system in SYSTEMS:
+    DATA_FOLDER = f"datasets/{system}"
+    print(f"\n{'='*60}\nSystem: {system.upper()}\n{'='*60}")
 
-    df = pd.read_csv(os.path.join(DATA_FOLDER, filename))
-    X = df.drop(columns=["time"]).values
-    y = df["time"].values
+    for filename in sorted(os.listdir(DATA_FOLDER)):
+        if not filename.endswith(".csv"):
+            continue
 
-    lr_mape, lr_mae, lr_rmse = [], [], []
-    rf_mape, rf_mae, rf_rmse = [], [], []
+        df = pd.read_csv(os.path.join(DATA_FOLDER, filename))
+        X = df.drop(columns=["time"]).values
+        y = df["time"].values
 
-    for _ in range(REPEATS):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+        lr_mape, lr_mae, lr_rmse = [], [], []
+        rf_mape, rf_mae, rf_rmse = [], [], []
 
-        lr = LinearRegression()
-        lr.fit(X_train, y_train)
-        lr_pred = lr.predict(X_test)
+        for _ in range(REPEATS):
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
-        rf = RandomForestRegressor(n_estimators=100, n_jobs=-1)
-        rf.fit(X_train, y_train)
-        rf_pred = rf.predict(X_test)
+            lr = LinearRegression()
+            lr.fit(X_train, y_train)
+            lr_pred = lr.predict(X_test)
 
-        lr_mape.append(mean_absolute_percentage_error(y_test, lr_pred))
-        lr_mae.append(mean_absolute_error(y_test, lr_pred))
-        lr_rmse.append(root_mean_squared_error(y_test, lr_pred))
+            rf = RandomForestRegressor(n_estimators=100, n_jobs=-1)
+            rf.fit(X_train, y_train)
+            rf_pred = rf.predict(X_test)
 
-        rf_mape.append(mean_absolute_percentage_error(y_test, rf_pred))
-        rf_mae.append(mean_absolute_error(y_test, rf_pred))
-        rf_rmse.append(root_mean_squared_error(y_test, rf_pred))
+            lr_mape.append(mean_absolute_percentage_error(y_test, lr_pred))
+            lr_mae.append(mean_absolute_error(y_test, lr_pred))
+            lr_rmse.append(root_mean_squared_error(y_test, lr_pred))
 
-    # Wilcoxon signed-rank test on MAPE scores
-    try:
-        _, p = wilcoxon(lr_mape, rf_mape, alternative="greater")
-    except ValueError:
-        p = float("nan")
+            rf_mape.append(mean_absolute_percentage_error(y_test, rf_pred))
+            rf_mae.append(mean_absolute_error(y_test, rf_pred))
+            rf_rmse.append(root_mean_squared_error(y_test, rf_pred))
 
-    # Vargha-Delaney A12 effect size
-    a12 = sum(1 if l > r else 0.5 if l == r else 0 for l, r in zip(lr_mape, rf_mape)) / REPEATS
+        # Wilcoxon signed-rank test on MAPE scores
+        try:
+            _, p = wilcoxon(lr_mape, rf_mape, alternative="greater")
+        except ValueError:
+            p = float("nan")
 
-    print(f"{filename}")
-    print(f"  LR  -> MAPE={np.mean(lr_mape):.4f}  MAE={np.mean(lr_mae):.4f}  RMSE={np.mean(lr_rmse):.4f}")
-    print(f"  RF  -> MAPE={np.mean(rf_mape):.4f}  MAE={np.mean(rf_mae):.4f}  RMSE={np.mean(rf_rmse):.4f}")
-    print(f"  p={p:.4f}  A12={a12:.4f}\n")
+        # Vargha-Delaney A12 effect size
+        a12 = sum(1 if l > r else 0.5 if l == r else 0 for l, r in zip(lr_mape, rf_mape)) / REPEATS
 
-    rows.append({
-        "workload":    filename,
-        "LR_MAPE":     np.mean(lr_mape),
-        "RF_MAPE":     np.mean(rf_mape),
-        "LR_MAE":      np.mean(lr_mae),
-        "RF_MAE":      np.mean(rf_mae),
-        "LR_RMSE":     np.mean(lr_rmse),
-        "RF_RMSE":     np.mean(rf_rmse),
-        "p_value":     p,
-        "A12":         a12,
-        "significant": "YES" if p < 0.05 else "NO"
-    })
+        print(f"{filename}")
+        print(f"  LR  -> MAPE={np.mean(lr_mape):.4f}  MAE={np.mean(lr_mae):.4f}  RMSE={np.mean(lr_rmse):.4f}")
+        print(f"  RF  -> MAPE={np.mean(rf_mape):.4f}  MAE={np.mean(rf_mae):.4f}  RMSE={np.mean(rf_rmse):.4f}")
+        print(f"  p={p:.4f}  A12={a12:.4f}\n")
+
+        rows.append({
+            "system":      system,
+            "workload":    filename,
+            "LR_MAPE":     np.mean(lr_mape),
+            "RF_MAPE":     np.mean(rf_mape),
+            "LR_MAE":      np.mean(lr_mae),
+            "RF_MAE":      np.mean(rf_mae),
+            "LR_RMSE":     np.mean(lr_rmse),
+            "RF_RMSE":     np.mean(rf_rmse),
+            "p_value":     p,
+            "A12":         a12,
+            "significant": "YES" if p < 0.05 else "NO"
+        })
 
 results = pd.DataFrame(rows)
 results.to_csv("results/results.csv", index=False)
 
-print("--- Overall Averages ---")
+print("\n--- Overall Averages (all systems) ---")
 print(f"LR   MAPE={results['LR_MAPE'].mean():.4f}  MAE={results['LR_MAE'].mean():.4f}  RMSE={results['LR_RMSE'].mean():.4f}")
 print(f"RF   MAPE={results['RF_MAPE'].mean():.4f}  MAE={results['RF_MAE'].mean():.4f}  RMSE={results['RF_RMSE'].mean():.4f}")
 print(f"\nRF beats LR on MAPE: {(results['RF_MAPE'] < results['LR_MAPE']).sum()}/{len(results)} workloads")
 print(f"Statistically significant (p<0.05): {(results['significant'] == 'YES').sum()}/{len(results)} workloads")
+
+print("\n--- Per-System Averages ---")
+for system in SYSTEMS:
+    s = results[results["system"] == system]
+    print(f"\n{system.upper()} ({len(s)} workloads)")
+    print(f"  LR   MAPE={s['LR_MAPE'].mean():.4f}  MAE={s['LR_MAE'].mean():.4f}  RMSE={s['LR_RMSE'].mean():.4f}")
+    print(f"  RF   MAPE={s['RF_MAPE'].mean():.4f}  MAE={s['RF_MAE'].mean():.4f}  RMSE={s['RF_RMSE'].mean():.4f}")
+    print(f"  RF wins: {(s['RF_MAPE'] < s['LR_MAPE']).sum()}/{len(s)}  Significant: {(s['significant'] == 'YES').sum()}/{len(s)}")
