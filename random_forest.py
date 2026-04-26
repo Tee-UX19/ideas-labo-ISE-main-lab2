@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # --- Config ---
-DATA_FOLDER = "datasets/z3"
+DATA_FOLDER = "datasets/x264"
 REPEATS = 30
 
 all_results = []
@@ -18,7 +18,7 @@ for filename in os.listdir(DATA_FOLDER):
         continue
 
     df = pd.read_csv(os.path.join(DATA_FOLDER, filename))
-    
+
     X = df.drop(columns=["time"]).values
     y = df["time"].values
 
@@ -26,8 +26,13 @@ for filename in os.listdir(DATA_FOLDER):
 
     for _ in range(REPEATS):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-        
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+        model = RandomForestRegressor(
+            n_estimators=100,   
+            max_depth=None,     
+            n_jobs=-1,          
+            random_state=None   
+        )
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
